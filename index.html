@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta  
+    name="viewport"
+    content="width=device-width,height=device-height,initial-scale=1.0"
+    />
+  <title>주소 찾기</title>
+</head>
+<body onload="execDaumPostcode()">
+  <div id="wrap" style="border: 1px solid black; width: 100%; max-width: 450px; height: 500px; margin: 5px auto; position: relative;"></div>
+  
+  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=ca73c73da33844b14e4c54eb6992aab0&libraries=services"></script>
+  
+  <script>
+    const element_wrap = document.getElementById('wrap');
+
+    const daumPostcode = () => {
+      new daum.Postcode({
+        oncomplete: data => {
+          console.log('도로명주소 : ' + data.roadAddress);
+          console.log('지번주소 : ' + data.jibunAddress);
+          console.log('우편번호 : ' + data.zonecode);
+
+          const geocoder = new kakao.maps.services.Geocoder();
+          geocoder.addressSearch(data.roadAddress, (result, status) => {
+            if (status === kakao.maps.services.Status.OK) {
+              console.log('위도 : ' + result[0].y);
+              console.log('경도 : ' + result[0].x);
+
+              var postData = {
+                roadAddress: data.roadAddress,
+                jibunAddress: data.jibunAddress === '' ? data.autoJibunAddress : data.jibunAddress,
+                zonecode: data.zonecode,
+                x: result[0].y,
+                y: result[0].x
+              };
+
+              postMessageToiOS(postData);
+            }
+          });
+        },
+        onresize: size => {
+          element_wrap.style.height = size.height + 'px';
+        },
+        width: '100%',
+        height: '100%'
+      }).embed(element_wrap, { autoClose: false });
+    }
+
+    function execDaumPostcode() {
+      daumPostcode();
+    }
+
+    function postMessageToiOS(postData) {
+      window.webkit.messageHandlers.callBackHandler.postMessage(postData);
+    }
+    
+    // iOS 디바이스에서 너비를 맞추기 위한 추가 코드
+    function adjustWidthForiOS() {
+      var deviceWidth = Math.min(window.screen.width, window.innerWidth);
+      element_wrap.style.width = deviceWidth + 'px';
+    }
+
+    adjustWidthForiOS(); // 페이지 로드 시 너비 조정 실행
+  </script>
+</body>
+</html>
